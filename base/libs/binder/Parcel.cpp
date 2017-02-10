@@ -152,11 +152,25 @@ status_t flatten_binder(const sp<ProcessState>& proc,
     const sp<IBinder>& binder, Parcel* out)
 {
     flat_binder_object obj;
-    
+    /*
+	0x7f表示处理本Binder实体请求数据包的线程的最低优先级，
+	FLAT_BINDER_FLAG_ACCEPTS_FDS表示这个Binder实体可以接受文件描述符，Binder实体在收到文件描述符时，
+	就会在本进程中打开这个文件。
+
+    */
     obj.flags = 0x7f | FLAT_BINDER_FLAG_ACCEPTS_FDS;
+
+	/*
+	传进来的binder即为MediaPlayerService::instantiate函数中new出来的MediaPlayerService实例，
+	因此，不为空。
+	*/
     if (binder != NULL) {
         IBinder *local = binder->localBinder();
-        if (!local) {
+		/*
+		又由于MediaPlayerService继承自BBinder类，它是一个本地Binder实体，
+			因此binder->localBinder返回一个BBinder指针，而且肯定不为空
+		*/
+        if (!local) {//if null
             BpBinder *proxy = binder->remoteBinder();
             if (proxy == NULL) {
                 LOGE("null proxy");
@@ -175,7 +189,7 @@ status_t flatten_binder(const sp<ProcessState>& proc,
         obj.binder = NULL;
         obj.cookie = NULL;
     }
-    
+    //调用finish_flatten_binder来将这个flat_binder_obj写入到Parcel中去：
     return finish_flatten_binder(binder, obj, out);
 }
 
@@ -809,6 +823,7 @@ status_t Parcel::write(const Flattenable& val)
     return err;
 }
 
+//除了把flat_binder_obj写到Parcel里面之内，还要记录这个flat_binder_obj在Parcel里面的偏移位置：
 status_t Parcel::writeObject(const flat_binder_object& val, bool nullMetaData)
 {
     const bool enoughData = (mDataPos+sizeof(val)) <= mDataCapacity;
@@ -819,7 +834,11 @@ restart_write:
         
         // Need to write meta-data?
         if (nullMetaData || val.binder != NULL) {
-            mObjects[mObjectsSize] = mDataPos;
+            mObjects[mObjectsSize] = mDataPos;//记录这个flat_binder_obj在Parcel里面的偏移位置：
+            /*
+			这里因为，如果进程间传输的数据间带有Binder对象的时候，Binder驱动程序需要作进一步的处理，
+			以维护各个Binder实体的一致性，下面我们将会看到Binder驱动程序是怎么处理这些Binder对象的。
+            */
             acquire_object(ProcessState::self(), val, this);
             mObjectsSize++;
         }

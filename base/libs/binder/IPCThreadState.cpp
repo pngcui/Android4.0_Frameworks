@@ -674,7 +674,8 @@ status_t IPCThreadState::waitForResponse(Parcel *reply, status_t *acquireResult)
         err = mIn.errorCheck();
         if (err < NO_ERROR) break;
         if (mIn.dataAvail() == 0) continue;
-        
+
+		//操作mIn了，看来talkWithDriver中把mOut发出去，然后从driver中读到数据放到mIn中了。
         cmd = mIn.readInt32();
         
         IF_LOG_COMMANDS() {
@@ -807,6 +808,7 @@ status_t IPCThreadState::talkWithDriver(bool doReceive)
             alog << "About to read/write, write size = " << mOut.dataSize() << endl;
         }
 #if defined(HAVE_ANDROID_OS)
+//用ioctl来读写
         if (ioctl(mProcess->mDriverFD, BINDER_WRITE_READ, &bwr) >= 0)
             err = NO_ERROR;
         else
@@ -818,7 +820,7 @@ status_t IPCThreadState::talkWithDriver(bool doReceive)
             alog << "Finished read/write, write size = " << mOut.dataSize() << endl;
         }
     } while (err == -EINTR);
-
+//到这里，回复数据就在bwr中了，bmr接收回复数据的buffer就是mIn提供的
     IF_LOG_COMMANDS() {
         alog << "Our err: " << (void*)err << ", write consumed: "
             << bwr.write_consumed << " (of " << mOut.dataSize()
@@ -974,7 +976,7 @@ status_t IPCThreadState::executeCommand(int32_t cmd)
             mOut.writeInt32((int32_t)success);
         }
         break;
-    
+    //
     case BR_TRANSACTION:
         {
             binder_transaction_data tr;

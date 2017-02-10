@@ -291,6 +291,7 @@ void ProcessState::spawnPooledThread(bool isMain)
         sprintf(buf, "Binder Thread #%d", s);
         LOGV("Spawning new pooled thread, name=%s\n", buf);
         sp<Thread> t = new PoolThread(isMain);
+		////创建线程池，然后run起来，和java的Thread何其像也。
         t->run(buf);
     }
 }

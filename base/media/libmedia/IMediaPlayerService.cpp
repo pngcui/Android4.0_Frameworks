@@ -133,12 +133,14 @@ status_t BnMediaPlayerService::onTransact(
     uint32_t code, const Parcel& data, Parcel* reply, uint32_t flags)
 {
     switch(code) {
+		//就是CREATE_URL:
         case CREATE: {
             CHECK_INTERFACE(IMediaPlayerService, data, reply);
             pid_t pid = data.readInt32();
             sp<IMediaPlayerClient> client =
                 interface_cast<IMediaPlayerClient>(data.readStrongBinder());
             int audioSessionId = data.readInt32();
+			//create是一个虚函数，由MediaPlayerService来实现！！
             sp<IMediaPlayer> player = create(pid, client, audioSessionId);
             reply->writeStrongBinder(player->asBinder());
             return NO_ERROR;

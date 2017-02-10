@@ -273,3 +273,4 @@ int main(int argc, char **argv)
     binder_loop(bs, svcmgr_handler);	//处理BpServiceManager发过来的命令，比如add service
     return 0;
 }
+

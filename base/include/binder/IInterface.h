@@ -88,7 +88,7 @@ protected:
     I##INTERFACE();                                                     \
     virtual ~I##INTERFACE();                                            \
 
-
+//IServiceManager::asInterface(obj)
 #define IMPLEMENT_META_INTERFACE(INTERFACE, NAME)                       \
     const android::String16 I##INTERFACE::descriptor(NAME);             \
     const android::String16&                                            \

@@ -33,12 +33,18 @@ namespace android {
 
 sp<IServiceManager> defaultServiceManager()
 {
+//frameworks/base/libs/binder/Static.cpp:gDefaultServiceManager
     if (gDefaultServiceManager != NULL) return gDefaultServiceManager;
     
     {
         AutoMutex _l(gDefaultServiceManagerLock);	//锁
         if (gDefaultServiceManager == NULL) {
-            gDefaultServiceManager = interface_cast<IServiceManager>(
+
+			/*
+			*BpServiceManager类继承了BpInterface<IServiceManager>类，BpInterface是一个模板类，
+			*它定义在frameworks/base/include/binder/IInterface.h文件中
+			*/
+            gDefaultServiceManager = interface_cast<IServiceManager>(	//单例
                 ProcessState::self()->getContextObject(NULL));
 			//gDefaultServiceManager = interface_cast<IServiceManager>(new BpBinder(0))
 			//把BpBinder*转成IServiceManager*的在frameworks\base\include\binder\IInterface.h:41
@@ -127,11 +133,37 @@ bool checkPermission(const String16& permission, pid_t pid, uid_t uid)
 class BpServiceManager : public BpInterface<IServiceManager>
 {
 public:
-    BpServiceManager(const sp<IBinder>& impl)
+    BpServiceManager(const sp<IBinder>& impl)//这里传入的impl就是new BpBinder(0)
         : BpInterface<IServiceManager>(impl)
     {
     }
+	
+//-->IInterface.h中,在这里定义了remote，也就是说后面的remote()中return mRemote也就是这个remote
+/*
+template<typename INTERFACE>
+inline BpInterface<INTERFACE>::BpInterface(const sp<IBinder>& remote)
+    : BpRefBase(remote)
+{
+}
 
+BpRefBase::BpRefBase(const sp<IBinder>& o)
+
+    : mRemote(o.get()), mRefs(NULL), mState(0)
+
+//o.get()，这个是sp类的获取实际数据指针的一个方法，你只要知道
+
+//它返回的是sp<xxxx>中xxx* 指针就行
+
+{
+
+//mRemote就是刚才的BpBinder(0)
+
+   ...
+
+}
+
+
+*/
     virtual sp<IBinder> getService(const String16& name) const
     {
         unsigned n;
@@ -157,10 +189,11 @@ public:
 //把service添加到ServiceManager中去
     virtual status_t addService(const String16& name, const sp<IBinder>& service)
     {
+    //这里的Parcel类是用来于序列化进程间通信数据用的。
         Parcel data, reply;
 		//data就是发送到BnServiceManager的命令包
 		//MediaServiceManager是从BnServiceManager派生
-        data.writeInterfaceToken(IServiceManager::getInterfaceDescriptor());
+        data.writeInterfaceToken(IServiceManager::getInterfaceDescriptor());//先把Interface名字写进去，也就是什么android.os.IServiceManager
         data.writeString16(name);
         data.writeStrongBinder(service);
 		

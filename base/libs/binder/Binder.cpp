@@ -104,6 +104,11 @@ status_t BBinder::transact(
             reply->writeInt32(pingBinder());
             break;
         default:
+			/*
+			最终会调用onTransact函数来处理。在service如何自启动的场景中，BnMediaPlayerService继承了BBinder类，
+			并且重载了onTransact函数，因此，这里实际上是调用了BnMediaPlayerService::onTransact函数，
+			这个函数定义在frameworks/base/libs/media/libmedia/IMediaPlayerService.cpp文件中
+			*/
             err = onTransact(code, data, reply, flags);
             break;
     }
